@@ -182,6 +182,11 @@ int handleClientResponse(int client_fd)
                 res = "$-1\r\n";
               }
             }
+            else
+            {
+              std::string val = kvstore[key];
+              res = "$" + std::to_string(val.size()) + "\r\n" + val + "\r\n";
+            }
           }
           else
             res = "$-1\r\n";
