@@ -1,4 +1,5 @@
 #include <iostream>
+#include<chrono>
 #include <cstdlib>
 #include <string>
 #include <cstring>
@@ -16,6 +17,7 @@ const int MAX{1024};
 const int BUFFERSIZE{1024};
 
 std::unordered_map<std::string, std::string> kvstore;
+std::unordered_map<std::string, uint64_t> kvstore_expiries;
 
 
 std::vector<std::string> tokenize(const std::string& str, const std::string& delimiter) {
@@ -129,8 +131,24 @@ int handleClientResponse(int client_fd)
           ci++;
           std::string val = strs_received[ci];
           std::cout << "key = " << key << " , val = " << val << std::endl;
-
           kvstore[key] = val;
+
+          if(ci < strs_received.size())
+          {
+            ci++; // goto opiton
+            std::string option = strs_received[ci];
+            if(ci < n && compareStrings(option, "px"))
+            {
+              ci++; // goto time val
+              uint64_t ttl = std::atol(strs_received[ci].c_str());
+              uint64_t current_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()
+              ).count();
+              uint64_t expiry_epoch = current_epoch + ttl; 
+              std::cout << "setting expiry key = " << key << " , epoch = " << expiry_epoch << std::endl;
+              kvstore_expiries[key] = expiry_epoch;
+            }
+          }
 
           std::string res = "+OK\r\n";
           write(client_fd, res.c_str(), res.size());
@@ -144,8 +162,19 @@ int handleClientResponse(int client_fd)
           std::string res = "";
           if(kvstore.find(key) != kvstore.end())
           {
-            std::string val = kvstore[key];
-            res = "$" + std::to_string(val.size()) + "\r\n" + val + "\r\n";
+              uint64_t current_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()
+              ).count();
+
+              if(current_epoch  <= kvstore_expiries[key])
+              {
+                std::string val = kvstore[key];
+                res = "$" + std::to_string(val.size()) + "\r\n" + val + "\r\n";
+              }
+              else
+              {
+                res = "$-1\r\n";
+              }
           }
           else
             res = "$-1\r\n";
