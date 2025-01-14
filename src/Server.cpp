@@ -148,6 +148,9 @@ int handleClientResponse(int client_fd)
               std::cout << "setting expiry key = " << key << " , epoch = " << expiry_epoch << std::endl;
               kvstore_expiries[key] = expiry_epoch;
             }
+            else{
+              std::cout << "NOT SETTING PX for this " << std::endl;
+            }
           }
 
           std::string res = "+OK\r\n";
@@ -162,10 +165,11 @@ int handleClientResponse(int client_fd)
           std::string res = "";
           if(kvstore.find(key) != kvstore.end())
           {
+            if(kvstore_expiries.find(key) != kvstore_expiries.end())
+            {
               uint64_t current_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()
               ).count();
-
               if(current_epoch  <= kvstore_expiries[key])
               {
                 std::string val = kvstore[key];
@@ -173,8 +177,11 @@ int handleClientResponse(int client_fd)
               }
               else
               {
+                kvstore_expiries.erase(key);
+                kvstore.erase(key);
                 res = "$-1\r\n";
               }
+            }
           }
           else
             res = "$-1\r\n";
