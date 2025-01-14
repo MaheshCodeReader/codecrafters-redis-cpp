@@ -10,10 +10,12 @@
 #include <netdb.h>
 
 #include<vector>
+#include<unordered_map>
 
 const int MAX{1024};
 const int BUFFERSIZE{1024};
 
+std::unordered_map<std::string, std::string> kvstore;
 
 
 std::vector<std::string> tokenize(const std::string& str, const std::string& delimiter) {
@@ -116,6 +118,39 @@ int handleClientResponse(int client_fd)
           // get next string
           ci++; // goto that string
           std::string res = "+" + strs_received[ci] + "\r\n";
+          write(client_fd, res.c_str(), res.size());
+        }
+        else if(compareStrings(strs, "SET"))
+        {
+          // get key string
+          ci++; // goto that string
+          std::string key = strs_received[ci];
+          //get val string
+          ci++;
+          std::string val = strs_received[ci];
+          std::cout << "key = " << key << " , val = " << val << std::endl;
+
+          kvstore[key] = val;
+
+          std::string res = "+OK\r\n";
+          write(client_fd, res.c_str(), res.size());
+        }
+        else if(compareStrings(strs, "GET"))
+        {
+          // get key string
+          ci++; // goto that string
+          std::string key = strs_received[ci];
+          //get val string from kvstore
+          std::string res = "";
+          if(kvstore.find(key) != kvstore.end())
+          {
+            std::string val = kvstore[key];
+            res = "$" + std::to_string(val.size()) + "\r\n" + val + "\r\n";
+          }
+          else
+            res = "$-1\r\n";
+
+          std::cout << "res = " << res << std::endl;
           write(client_fd, res.c_str(), res.size());
         }
         else
