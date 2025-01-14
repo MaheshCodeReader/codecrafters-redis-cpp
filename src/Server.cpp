@@ -1,4 +1,6 @@
 #include <iostream>
+#include<sstream>
+#include<optional>
 #include<chrono>
 #include <cstdlib>
 #include <string>
@@ -13,11 +15,85 @@
 #include<vector>
 #include<unordered_map>
 
+
+struct Argument {
+  int16_t port{kDefaultPort};
+
+  std::optional<std::string> replicaof_host;
+  std::optional<int16_t> replicaof_port;
+
+  static constexpr int16_t kDefaultPort = 6379;
+
+  std::optional<std::string> dir;
+  std::optional<std::string> dbfilename;
+
+  /*
+  ServerConfig to_server_config() {
+    ServerConfig config;
+    config.port = port;
+    if (replicaof_port.has_value()) {
+      config.replicaof = {replicaof_host.value(), replicaof_port.value()};
+    }
+    if (dir.has_value() && dbfilename.has_value()) {
+      config.rdb_info = {dir.value(), dbfilename.value()};
+    }
+    return config;
+  }
+  */
+};
+
+Argument read_argument(int argc, char **argv) 
+{
+  // Command line arguments will be stored in a map
+  std::unordered_map<std::string, std::string> args;
+
+  // Parse the command line arguments
+  for (int i = 1; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg.substr(0, 2) == "--" && i + 1 < argc) {
+      args[arg.substr(2)] = argv[++i];
+    }
+  }
+
+  Argument argument;
+  // Check if the port argument was provided
+  if (auto it = args.find("port"); it != args.end()) {
+    int port = std::stoi(it->second);
+    argument.port = port;
+  }
+
+  // Check if replicaof argument was provided
+  if (auto it = args.find("replicaof"); it != args.end()) {
+    std::istringstream iss(it->second);
+    std::string host;
+    int64_t port;
+    iss >> host;
+    iss >> port;
+    argument.replicaof_host = std::move(host);
+    argument.replicaof_port = port;
+  }
+
+  // Check if rdb info dir argument was provided
+  if (auto it = args.find("dir"); it != args.end()) {
+    argument.dir = it->second;
+  }
+
+  // Check if rdb info dbfilename argument was provided
+  if (auto it = args.find("dbfilename"); it != args.end()) {
+    argument.dbfilename = it->second;
+  }
+
+  return argument;
+}
+
 const int MAX{1024};
 const int BUFFERSIZE{1024};
 
 std::unordered_map<std::string, std::string> kvstore;
 std::unordered_map<std::string, uint64_t> kvstore_expiries;
+Argument global_args;
+
+
 
 
 std::vector<std::string> tokenize(const std::string& str, const std::string& delimiter) {
@@ -194,6 +270,63 @@ int handleClientResponse(int client_fd)
           std::cout << "res = " << res << std::endl;
           write(client_fd, res.c_str(), res.size());
         }
+        else if(compareStrings(strs, "CONFIG"))
+        {
+          std::cout << "config command received" << std::endl;
+          ci++; // goto "get" part of "config get foo"
+          std::string resp="";
+          std::string getcommand = strs_received[ci];
+          if(compareStrings(getcommand, "GET"))
+          {
+            ci++;//goto the requested parameters
+            std::string parameter_name = strs_received[ci];
+            if(compareStrings(parameter_name, "dir"))
+            {
+              if(global_args.dir)
+              {
+                std::string dirname = *(global_args.dir);
+                resp = "*2\r\n$3\r\ndir\r\n$" 
+                  + std::to_string(dirname.size())
+                  +"\r\n"
+                  + dirname 
+                  +"\r\n";
+              }
+              else
+              {
+                resp = "$-1\r\n";
+              }
+
+            }
+            else if(compareStrings(parameter_name, "dbfilename"))
+            {
+              if(global_args.dbfilename)
+              {
+                std::string dbfilename_copied= *(global_args.dbfilename);
+                resp = "*2\r\n$10\r\ndbfilename\r\n$" 
+                  + std::to_string(dbfilename_copied.size())
+                  +"\r\n"
+                  + dbfilename_copied
+                  +"\r\n";
+              }
+              else
+              {
+                resp = "$-1\r\n";
+              }
+            }
+            else
+            {
+              std::cout << "some other config requested" << std::endl;
+            }
+            
+
+          }
+          else
+          {
+            std::cout << "config command received but no GET part in it" << std::endl;
+          }
+
+          write(client_fd, resp.c_str(), resp.size());
+        }
         else
         {
           std::cout << "new command = " << strs << std::endl; 
@@ -247,10 +380,18 @@ int handleClientResponse(int client_fd)
   return 99;
 }
 
+
+
+
 int main(int argc, char **argv) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+
+
+  global_args = read_argument(argc, argv);
+
+
   
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
