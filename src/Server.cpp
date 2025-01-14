@@ -39,7 +39,18 @@ std::vector<std::string> tokenize(const std::string& str, const std::string& del
     return tokens;
 }
 
+bool compareStrings(std::string str1, std::string str2)
+{
+    if (str1.size() != str2.size())
+        return false;
 
+    for (int i = 0; i < str1.size(); ++i) {
+        if (std::tolower(str1[i]) != std::tolower(str2[i]))
+            return false;
+    }
+
+    return true;
+}
 
 int handleClientResponse(int client_fd)
 {
@@ -89,12 +100,22 @@ int handleClientResponse(int client_fd)
         strs_received.push_back(tokens[i]);
       }
 
-      for(auto strs : strs_received)
+
+      int ci = 0;
+      while(ci < strs_received.size())
       {
+        std::string strs = strs_received[ci];
         std::cout << "strs = " << strs << std::endl;
-        if(strs == "PING")
+        if(compareStrings(strs, "PING"))
         {
           std::string res = "+PONG\r\n";
+          write(client_fd, res.c_str(), res.size());
+        }
+        else if(compareStrings(strs, "ECHO"))
+        {
+          // get next string
+          ci++; // goto that string
+          std::string res = "+" + strs_received[ci] + "\r\n";
           write(client_fd, res.c_str(), res.size());
         }
         else
@@ -103,6 +124,9 @@ int handleClientResponse(int client_fd)
           std::string res = "+newcommand\r\n";
           write(client_fd, res.c_str(), res.size());
         }
+
+
+        ci++;
       }
     }
       break;
