@@ -322,12 +322,12 @@ int handleClientResponse(int client_fd)
           }
 
           std::string resp = "*";
-          resp += all_keys.size();
+          resp += std::to_string(all_keys.size());
           resp += "\r\n";
           for(auto kk : all_keys)
           {
             resp += "$";
-            resp += kk.size();
+            resp += std::to_string(kk.size());
             resp += "\r\n";
             resp += kk;
             resp += "\r\n";
