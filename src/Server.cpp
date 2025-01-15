@@ -320,8 +320,19 @@ int handleClientResponse(int client_fd)
             all_keys.push_back(pp.first);
             std::cout << "found key = " << pp.first << std::endl;
           }
-          
 
+          std::string resp = "*";
+          resp += all_keys.size();
+          resp += "\r\n";
+          for(auto kk : all_keys)
+          {
+            resp += "$";
+            resp += kk.size();
+            resp += "\r\n";
+            resp += kk;
+            resp += "\r\n";
+          }
+          write(client_fd, resp.c_str(), res.size());
         }
         else
         {
