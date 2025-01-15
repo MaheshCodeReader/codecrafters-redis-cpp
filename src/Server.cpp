@@ -341,9 +341,9 @@ int handleClientResponse(int client_fd)
           ci++;// goto "replcation", will be ignored for now
           std::string info_arg = strs_received[ci];
 
-          std::string role_string = "role:" + redis.db_role;
+          std::string role_string = "role:" + redis.dbs["db_1"].db_role;
           std::string resp = "$";
-          resp += std::to_string(resp.size());
+          resp += std::to_string(role_string.size());
           resp += "\r\n";
           resp += role_string;
           resp += "\r\n";
@@ -427,11 +427,11 @@ int main(int argc, char **argv) {
 
   if(global_args.replicaof_host)
   {
-    redis.db_role = "master";
+    redis.dbs["db_1"].db_role = "master";
   }
   else
   {
-    redis.db_role = "slave";
+    redis.dbs["db_1"].db_role = "slave";
   }
 
   
