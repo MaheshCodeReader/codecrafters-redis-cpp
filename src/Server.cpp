@@ -363,6 +363,8 @@ int handleClientResponse(int client_fd)
           resp += master_repl_offset_string;
           resp += "\r\n";
 
+          std::cout << "sendidng to client = " << rsep << std::endl;
+
           write(client_fd, resp.c_str(), resp.size());
 
         }
