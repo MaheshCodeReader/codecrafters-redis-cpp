@@ -345,7 +345,7 @@ int handleClientResponse(int client_fd)
           std::string master_repl_offset_string = "master_repl_offset:" + redis.dbs["db_1"].db_master_repl_offset;
           std::string master_replid_string = "master_replid:" + redis.dbs["db_1"].db_master_replid;
 
-          std::string resp = "$";
+          std::string resp = "*3$";
           resp += std::to_string(role_string.size());
           resp += "\r\n";
           resp += role_string;
