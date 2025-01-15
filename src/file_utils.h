@@ -357,7 +357,7 @@ void assert_single_db(const AllRedisDBs &all_data)
   }
 }
 
-void load_and_parse_rdb(const Argument &args)
+std::optional<RedisDB> load_and_parse_rdb(const Argument &args)
 {
   try
   {
@@ -408,6 +408,8 @@ void load_and_parse_rdb(const Argument &args)
             std::cout << std::endl;
           }
           std::cout << "RDB file parsing completed successfully." << std::endl;
+          std::cout << "setting inmemory to the read from file." << std::endl;
+          return single_db_data;
         }
         else
         {
@@ -415,22 +417,24 @@ void load_and_parse_rdb(const Argument &args)
           // Proceed with empty database (handle accordingly)
           AllRedisDBs empty_data; // An empty RedisDataAll structure
           log_parsed_data(empty_data);
+          
         }
       }
       else
       {
         std::cerr << "Directory does not exist: " << dir << std::endl;
-        return; // Exit with error if the directory doesn't exist
+         // Exit with error if the directory doesn't exist
       }
     }
     else
     {
       std::cerr << "Error: dir or dbfilename not set in configuration." << std::endl;
-      return; // Exit with error if required configurations are missing
+       // Exit with error if required configurations are missing
     }
   }
   catch (const std::runtime_error &e)
   {
     std::cerr << "Error: " << e.what() << std::endl;
   }
+  return {};
 }

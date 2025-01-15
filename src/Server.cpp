@@ -310,8 +310,11 @@ int handleClientResponse(int client_fd)
         else if(compareStrings(strs, "KEYS"))
         {
           std::cout << "keys command for reading keys from redis db to file received." << std::endl;
+          ci++; //goto "*"
+          std::string star = strs_received[ci];
           std::vector<std::string> all_keys;
           
+          std::cout << "redis.dbs['db_1'].kvstore.size() = " << redis.dbs["db_1"].kvstore.size() << std::endl;
           for(auto pp : redis.dbs["db_1"].kvstore)
           {
             all_keys.push_back(pp.first);
@@ -385,7 +388,15 @@ int main(int argc, char **argv) {
   global_args = read_argument(argc, argv);
 
   redis.dbs["db_1"] = RedisDB();
-  load_and_parse_rdb(global_args);
+  auto parsed_db = load_and_parse_rdb(global_args);
+  if(parsed_db)
+  {
+    redis.dbs["db_1"] = *parsed_db;
+  }
+  else
+  {
+    std::cout << "Parsed nothing" << std::endl;
+  }
 
   
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
