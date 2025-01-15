@@ -345,22 +345,19 @@ int handleClientResponse(int client_fd)
           std::string master_repl_offset_string = "master_repl_offset:" + redis.dbs["db_1"].db_master_repl_offset;
           std::string master_replid_string = "master_replid:" + redis.dbs["db_1"].db_master_replid;
 
-          std::string resp = "*3$";
-          resp += std::to_string(role_string.size());
-          resp += "\r\n";
-          resp += role_string;
-          resp += "\r\n";
+          std::string resp_raw = "";
+          resp_raw += role_string;
+          resp_raw += "\r\n";
           // add master repl offset
-          resp += "$";
-          resp += std::to_string(master_repl_offset_string.size());
-          resp += "\r\n";
-          resp += master_repl_offset_string;
-          resp += "\r\n";
+          resp_raw += master_repl_offset_string;
+          resp_raw += "\r\n";
           //add master_repliid
-          resp += "$";
-          resp += std::to_string(master_replid_string.size());
+          resp_raw += master_replid_string;
+
+          std::string resp = "$";
+          resp += std::to_string(resp_raw.size());
           resp += "\r\n";
-          resp += master_replid_string;
+          resp += resp_raw;
           resp += "\r\n";
 
           std::cout << "sendidng to client = " << resp << std::endl;
