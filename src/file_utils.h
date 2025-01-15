@@ -42,6 +42,7 @@ struct KeyValue
 struct RedisDB
 {
     std::string db_name;
+    std::string db_role;
   std::unordered_map<std::string, std::string> kvstore;
   std::unordered_map<std::string, uint64_t> kvstore_expiries;
 };

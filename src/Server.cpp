@@ -48,6 +48,7 @@ Argument read_argument(int argc, char **argv)
     int64_t port;
     iss >> host;
     iss >> port;
+    std::cout << "replicaof provided, host = " << host << " , port = " << port << std::endl;
     argument.replicaof_host = std::move(host);
     argument.replicaof_port = port;
   }
@@ -340,7 +341,12 @@ int handleClientResponse(int client_fd)
           ci++;// goto "replcation", will be ignored for now
           std::string info_arg = strs_received[ci];
 
-          std::string resp = "$11\r\nrole:master\r\n";
+          std::string role_string = "role:" + redis.db_role;
+          std::string resp = "$";
+          resp += std::to_string(resp.size());
+          resp += "\r\n";
+          resp += role_string;
+          resp += "\r\n";
           write(client_fd, resp.c_str(), resp.size());
 
         }
@@ -417,6 +423,15 @@ int main(int argc, char **argv) {
   else
   {
     std::cout << "Parsed nothing" << std::endl;
+  }
+
+  if(global_args.replicaof_host)
+  {
+    redis.db_role = "master";
+  }
+  else
+  {
+    redis.db_role = "slave";
   }
 
   
