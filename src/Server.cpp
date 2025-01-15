@@ -332,7 +332,7 @@ int handleClientResponse(int client_fd)
             resp += kk;
             resp += "\r\n";
           }
-          write(client_fd, resp.c_str(), res.size());
+          write(client_fd, resp.c_str(), resp.size());
         }
         else
         {
