@@ -38,6 +38,7 @@ Argument read_argument(int argc, char **argv)
   if (auto it = args.find("port"); it != args.end()) {
     int port = std::stoi(it->second);
     argument.port = port;
+    std::cout << "port provided = " << port << std::endl;
   }
 
   // Check if replicaof argument was provided
@@ -424,13 +425,14 @@ int main(int argc, char **argv) {
     return 1;
   }
   
+  int port_provided = global_args.port ? global_args.port : 6379;
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(6379);
+  server_addr.sin_port = htons(port_provided);
   
   if (bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
-    std::cerr << "Failed to bind to port 6379\n";
+    std::cerr << "Failed to bind to port " << std::to_string(port_provided) << " \n";
     return 1;
   }
   
