@@ -427,13 +427,13 @@ int main(int argc, char **argv) {
 
   if(global_args.replicaof_host)
   {
-    std::cout << "setting role to MASTER" << std::endl;
-    redis.dbs["db_1"].db_role = "master";
+    std::cout << "setting role to SLAVE" << std::endl;
+    redis.dbs["db_1"].db_role = "slave";
   }
   else
   {
-    std::cout << "setting role to SLAVE" << std::endl;
-    redis.dbs["db_1"].db_role = "slave";
+    std::cout << "setting role to MASTER" << std::endl;
+    redis.dbs["db_1"].db_role = "master";
   }
 
   
