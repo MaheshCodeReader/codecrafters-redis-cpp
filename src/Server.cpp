@@ -450,9 +450,9 @@ int main(int argc, char **argv) {
   {
     std::cout << "setting role to MASTER" << std::endl;
     redis.dbs["db_1"].db_role = "master";
-    redis.dbs["db_1"].db_master_replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
-    redis.dbs["db_1"].db_master_repl_offset = "0";
   }
+  redis.dbs["db_1"].db_master_replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+  redis.dbs["db_1"].db_master_repl_offset = "0";
 
   
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
