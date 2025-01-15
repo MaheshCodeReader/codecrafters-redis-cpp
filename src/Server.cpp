@@ -15,32 +15,10 @@
 #include<vector>
 #include<unordered_map>
 
+#include "file_utils.h"
 
-struct Argument {
-  int16_t port{kDefaultPort};
 
-  std::optional<std::string> replicaof_host;
-  std::optional<int16_t> replicaof_port;
 
-  static constexpr int16_t kDefaultPort = 6379;
-
-  std::optional<std::string> dir;
-  std::optional<std::string> dbfilename;
-
-  /*
-  ServerConfig to_server_config() {
-    ServerConfig config;
-    config.port = port;
-    if (replicaof_port.has_value()) {
-      config.replicaof = {replicaof_host.value(), replicaof_port.value()};
-    }
-    if (dir.has_value() && dbfilename.has_value()) {
-      config.rdb_info = {dir.value(), dbfilename.value()};
-    }
-    return config;
-  }
-  */
-};
 
 Argument read_argument(int argc, char **argv) 
 {
@@ -89,14 +67,13 @@ Argument read_argument(int argc, char **argv)
 const int MAX{1024};
 const int BUFFERSIZE{1024};
 
-std::unordered_map<std::string, std::string> kvstore;
-std::unordered_map<std::string, uint64_t> kvstore_expiries;
+AllRedisDBs redis = AllRedisDBs();
 Argument global_args;
 
 
 
-
-std::vector<std::string> tokenize(const std::string& str, const std::string& delimiter) {
+std::vector<std::string> tokenize(const std::string& str, const std::string& delimiter) 
+{
     std::vector<std::string> tokens;
     size_t start = 0, end;
     
@@ -179,8 +156,6 @@ int handleClientResponse(int client_fd)
       {
         strs_received.push_back(tokens[i]);
       }
-
-
       int ci = 0;
       while(ci < strs_received.size())
       {
@@ -207,7 +182,7 @@ int handleClientResponse(int client_fd)
           ci++;
           std::string val = strs_received[ci];
           std::cout << "key = " << key << " , val = " << val << std::endl;
-          kvstore[key] = val;
+          redis.dbs["db_1"].kvstore[key] = val;
 
           if(ci < strs_received.size())
           {
@@ -222,7 +197,7 @@ int handleClientResponse(int client_fd)
               ).count();
               uint64_t expiry_epoch = current_epoch + ttl; 
               std::cout << "setting expiry key = " << key << " , epoch = " << expiry_epoch << std::endl;
-              kvstore_expiries[key] = expiry_epoch;
+              redis.dbs["db_1"].kvstore_expiries[key] = expiry_epoch;
             }
             else{
               std::cout << "NOT SETTING PX for this " << std::endl;
@@ -239,28 +214,28 @@ int handleClientResponse(int client_fd)
           std::string key = strs_received[ci];
           //get val string from kvstore
           std::string res = "";
-          if(kvstore.find(key) != kvstore.end())
+          if(redis.dbs["db_1"].kvstore.find(key) != redis.dbs["db_1"].kvstore.end())
           {
-            if(kvstore_expiries.find(key) != kvstore_expiries.end())
+            if(redis.dbs["db_1"].kvstore_expiries.find(key) != redis.dbs["db_1"].kvstore_expiries.end())
             {
               uint64_t current_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()
               ).count();
-              if(current_epoch  <= kvstore_expiries[key])
+              if(current_epoch  <= redis.dbs["db_1"].kvstore_expiries[key])
               {
-                std::string val = kvstore[key];
+                std::string val = redis.dbs["db_1"].kvstore[key];
                 res = "$" + std::to_string(val.size()) + "\r\n" + val + "\r\n";
               }
               else
               {
-                kvstore_expiries.erase(key);
-                kvstore.erase(key);
+                redis.dbs["db_1"].kvstore_expiries.erase(key);
+                redis.dbs["db_1"].kvstore.erase(key);
                 res = "$-1\r\n";
               }
             }
             else
             {
-              std::string val = kvstore[key];
+              std::string val = redis.dbs["db_1"].kvstore[key];
               res = "$" + std::to_string(val.size()) + "\r\n" + val + "\r\n";
             }
           }
@@ -327,6 +302,24 @@ int handleClientResponse(int client_fd)
 
           write(client_fd, resp.c_str(), resp.size());
         }
+        else if(compareStrings(strs, "SAVE"))
+        {
+          std::cout << "save command for saving redis db to file received." << std::endl;
+
+        }
+        else if(compareStrings(strs, "KEYS"))
+        {
+          std::cout << "keys command for reading keys from redis db to file received." << std::endl;
+          std::vector<std::string> all_keys;
+          
+          for(auto pp : redis.dbs["db_1"].kvstore)
+          {
+            all_keys.push_back(pp.first);
+            std::cout << "found key = " << pp.first << std::endl;
+          }
+          
+
+        }
         else
         {
           std::cout << "new command = " << strs << std::endl; 
@@ -391,6 +384,8 @@ int main(int argc, char **argv) {
 
   global_args = read_argument(argc, argv);
 
+  redis.dbs["db_1"] = RedisDB();
+  load_and_parse_rdb(global_args);
 
   
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
