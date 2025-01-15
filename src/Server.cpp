@@ -342,25 +342,25 @@ int handleClientResponse(int client_fd)
           std::string info_arg = strs_received[ci];
 
           std::string role_string = "role:" + redis.dbs["db_1"].db_role;
-          std::string master_replid_string = "master_replid:" + redis.dbs["db_1"].db_master_replid;
           std::string master_repl_offset_string = "master_repl_offset:" + redis.dbs["db_1"].db_master_repl_offset;
+          std::string master_replid_string = "master_replid:" + redis.dbs["db_1"].db_master_replid;
 
           std::string resp = "$";
           resp += std::to_string(role_string.size());
           resp += "\r\n";
           resp += role_string;
           resp += "\r\n";
-          //add master_repliid
-          resp += "$";
-          resp += std::to_string(master_replid_string.size());
-          resp += "\r\n";
-          resp += master_replid_string;
-          resp += "\r\n";
           // add master repl offset
           resp += "$";
           resp += std::to_string(master_repl_offset_string.size());
           resp += "\r\n";
           resp += master_repl_offset_string;
+          resp += "\r\n";
+          //add master_repliid
+          resp += "$";
+          resp += std::to_string(master_replid_string.size());
+          resp += "\r\n";
+          resp += master_replid_string;
           resp += "\r\n";
 
           std::cout << "sendidng to client = " << resp << std::endl;
