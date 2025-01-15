@@ -335,6 +335,15 @@ int handleClientResponse(int client_fd)
           }
           write(client_fd, resp.c_str(), resp.size());
         }
+        else if(compareStrings(strs, "INFO"))
+        {
+          ci++;// goto "replcation", will be ignored for now
+          std::string info_arg = strs_received[ci];
+
+          std::string resp = "$11\r\nrole:master\r\n"
+          write(client_fd, resp.c_str(), resp.size());
+
+        }
         else
         {
           std::cout << "new command = " << strs << std::endl; 
