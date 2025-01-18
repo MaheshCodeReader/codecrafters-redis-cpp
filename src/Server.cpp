@@ -564,8 +564,14 @@ int main(int argc, char **argv) {
       std::cout << "put slave_sock_fd in event loop success fully" << std::endl;
 
     // attempting handshake with master_socket
+
+    // part 1 of handshaek : PING
     std::string to_send_to_master = "*1\r\n$4\r\nPING\r\n";
     write(slave_sock_fd, to_send_to_master.c_str(), to_send_to_master.size());
+
+    // part 2 of handshake : after receiving a response to the PING in stage 1, replica sends REPLCONF twice to the master
+
+    // part 3 of handshake : replica sends PSYNC to the master
 
   }
 
