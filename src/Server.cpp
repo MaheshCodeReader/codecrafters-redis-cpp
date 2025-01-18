@@ -598,6 +598,10 @@ int main(int argc, char **argv) {
             return 10;
           }
         }
+        else if(epv.data.fd == slave_sock_fd)
+        {
+          std::cout << "slave_sock_fd received something from somenoe need to fingure out" << std::endl;
+        }
         else if(epv.data.fd == server_fd)
         {
           std::cout << "server received a connect request" << std::endl;
