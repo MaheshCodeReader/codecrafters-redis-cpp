@@ -485,6 +485,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // create event loop
   int epoll_fd = epoll_create1(0);
   if(epoll_fd < 0)
   {
@@ -494,6 +495,7 @@ int main(int argc, char **argv) {
 
   struct epoll_event ev;
 
+  // put stdin in event loop
   std::cout << "putting in stdin in epoll " << std::endl;
   ev.events = EPOLLIN;
   ev.data.fd = STDIN_FILENO;
@@ -503,6 +505,7 @@ int main(int argc, char **argv) {
     return -1;
   }
 
+  // put listening server_fd  in event loop
   std::cout << "putting in server_fd in epooll" << std::endl;
   ev.events = EPOLLIN;
   ev.data.fd = server_fd;
@@ -510,6 +513,55 @@ int main(int argc, char **argv) {
   {
     std::cerr << "error while adding server_fd to epoll" << std::endl;
     return -1;
+  }
+
+  // if in slave role, connect to replicaof-host and put its fd in epoll
+  if(global_args.replicaof_host)
+  {
+    std::cout << "connect to replicaof-host (the master) , perform handshake, and put its fd in event loop" << std::endl;
+    int slave_sock_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (setsockopt(slave_sock_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+      std::cerr << "setsockopt for slave_sock_fd failed\n";
+      return 1;
+    }
+
+    if(slave_sock_fd == -1)
+    {
+      std::cerr << "slave socket creation failed" << std::endl;
+      return  -1;
+    }
+    else{
+      std::cout << "slave socket created" << std::endl;
+    }
+    
+    struct sockaddr_in master_socket_address;
+    bzero(&master_socket_address, sizeof(master_socket_address));
+
+    // assign master ip port
+    master_socket_address.sin_family = AF_INET;
+    master_socket_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    master_socket_address.sin_port = htons(std::atoi(global_args.replicaof_port));
+
+    // connect the client socket to server socket
+    if(connect(slave_sock_fd, (struct sockaddr *)&master_socket_address, sizeof(master_socket_address)) != 0)
+    {
+      std::cerr << "connection from slave client socket to master server socket failed" << std::endl;
+      return -2;
+    }
+    else
+      std::cout << "connected slave socket to master sokcet" << std::endl;
+
+    // put slave_sock_fd in event loop
+    ev.events = EPOLLIN;
+    ev.data.fd = slave_sock_fd;
+    if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, slave_sock_fd, &ev) < 0)
+    {
+      std::cerr << "putting slave_sock_fd in event loop failed" << std::endl;
+      return -3;
+    }
+    else
+      std::cout << "put slave_sock_fd in event loop success fully" << std::endl;
+
   }
 
   while(true)
@@ -540,12 +592,14 @@ int main(int argc, char **argv) {
           {
             close(server_fd);
             close(epoll_fd);
+            if(global_args.replicaof_host)
+              close(slave_sock_fd);
             return 10;
           }
         }
         else if(epv.data.fd == server_fd)
         {
-          std::cout << "it is server" << std::endl;
+          std::cout << "server received a connect request" << std::endl;
           struct sockaddr_in client_addr;
           int client_addr_len = sizeof(client_addr);
           std::cout << "Waiting for a client to connect...\n";
@@ -558,6 +612,8 @@ int main(int argc, char **argv) {
           {
             std::cerr << "failed to accept client" << std::endl;
           }
+
+          // put client_fd in event loop
           std::cout << "Client connected, putting it in epoll intereest list" << std::endl;
           struct epoll_event client_connect_event;
           client_connect_event.events = EPOLLIN;
