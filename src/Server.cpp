@@ -516,10 +516,11 @@ int main(int argc, char **argv) {
   }
 
   // if in slave role, connect to replicaof-host and put its fd in epoll
+  int slave_sock_fd {-10};
   if(global_args.replicaof_host)
   {
     std::cout << "connect to replicaof-host (the master) , perform handshake, and put its fd in event loop" << std::endl;
-    int slave_sock_fd = socket(AF_INET, SOCK_STREAM, 0);
+    slave_sock_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (setsockopt(slave_sock_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
       std::cerr << "setsockopt for slave_sock_fd failed\n";
       return 1;
