@@ -541,7 +541,7 @@ int main(int argc, char **argv) {
     // assign master ip port
     master_socket_address.sin_family = AF_INET;
     master_socket_address.sin_addr.s_addr = inet_addr("127.0.0.1");
-    master_socket_address.sin_port = htons(std::atoi(global_args.replicaof_port));
+    master_socket_address.sin_port = htons(*global_args.replicaof_port);
 
     // connect the client socket to server socket
     if(connect(slave_sock_fd, (struct sockaddr *)&master_socket_address, sizeof(master_socket_address)) != 0)
